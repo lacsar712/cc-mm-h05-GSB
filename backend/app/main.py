@@ -10,7 +10,6 @@ from sqlalchemy import DateTime, Float, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.rules import classify
-from app.site_ch4_swap import present_list_row, present_push_payload, swap_write
 
 
 class Settings(BaseSettings):
@@ -121,19 +120,31 @@ def login(body: LoginIn):
     return {"access_token": token, "username": body.username.strip(), "role": user["role"]}
 
 
+def serialize(row: Reading) -> dict:
+    return {
+        "id": row.id,
+        "site": row.site,
+        "ch4_pct": row.ch4_pct,
+        "level": row.level,
+        "note": row.note,
+        "created_by": row.created_by,
+    }
+
+
 @app.get("/api/readings")
 def list_readings(_user: dict = Depends(current_user)):
     db = SessionLocal()
     try:
         rows = db.query(Reading).order_by(Reading.id.desc()).all()
-        return [present_list_row(r) for r in rows]
+        return [serialize(r) for r in rows]
     finally:
         db.close()
 
 
 @app.post("/api/readings", status_code=201)
 async def create_reading(body: ReadingIn, user: dict = Depends(require_writer)):
-    site, ch4_pct = swap_write(body.site.strip(), body.ch4_pct)
+    site = body.site.strip()
+    ch4_pct = body.ch4_pct
     level, note = classify(ch4_pct)
     db = SessionLocal()
     try:
@@ -148,8 +159,7 @@ async def create_reading(body: ReadingIn, user: dict = Depends(require_writer)):
         db.add(row)
         db.commit()
         db.refresh(row)
-        payload = {"id": row.id, "site": row.site, "ch4_pct": row.ch4_pct, "level": row.level, "note": row.note}
-        payload = present_push_payload(payload)
+        payload = serialize(row)
     finally:
         db.close()
     dead = []

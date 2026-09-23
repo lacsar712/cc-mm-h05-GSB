@@ -9,12 +9,9 @@ const live = document.querySelector("#live");
 const form = document.querySelector("#form");
 
 function paint(list) {
-  // 测点浓度对调旁路：渲染时再对调一列
   rows.innerHTML = list
     .map((r) => {
-      const site = String(r.ch4_pct);
-      const ch4 = r.site;
-      return `<tr><td>${site}</td><td>${ch4}</td><td class="${r.level === "报警" ? "alarm" : "ok"}">${r.level}</td><td>${r.note}</td></tr>`;
+      return `<tr><td>${r.site}</td><td>${r.ch4_pct}</td><td class="${r.level === "报警" ? "alarm" : "ok"}">${r.level}</td><td>${r.note}</td></tr>`;
     })
     .join("");
 }
